@@ -1,0 +1,58 @@
+---
+title: "Statistical Numerical Integration"
+author: "JUSTIN LO"
+date: "2024-02-13"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Suppose you have a random variable 𝑋 taking values in ℝ and with density 𝑓(⋅), and that you want to calculate the expectation of some function 𝑔(𝑋). Assuming that this expectation exists, it is defined as 𝔼[𝑔(𝑋))]=∫∞−∞𝑔(𝑥)𝑓(𝑥)𝑑x. If the integral can't be done analytically then you might consider using numerical methods to evaluate it. The trapezium rule, encountered in the Week 3 self-study materials, is one such method. However, it can only be used for integrals over a finite range: the range of integration here is infinite.
+
+A potential solution to this problem is to transform the variable of integration. Specifically, consider the transformation 𝑢=𝐹(𝑥) where 𝐹(⋅) is the cumulative distribution function of x. Then𝑢ranges from 0 and 1; we have 𝑥=𝐹−1(𝑢) and 𝑑𝑢=𝑓(𝑥)𝑑𝑥. Hence the required integral can be rewritten as
+
+𝔼[𝑔(𝑋)]=∫∞−∞𝑔(𝑥)𝑓(𝑥)𝑑𝑥=∫1𝑢=0𝑔[𝐹−1(𝑢))]𝑑𝑢 .
+
+The range of integration (0,1) is now finite and can be divided into n intervals of length n-1, so that the trapezium rule gives the approximation
+
+𝔼[𝑔(𝑋)]=∫1𝑢=0𝑔[𝐹−1(𝑢))]𝑑𝑢≈12𝑛{𝑔[𝐹−1(0)]+2𝑔[𝐹−1(1𝑛)]+…+2𝑔[𝐹−1(𝑛−1𝑛)]+𝑔[𝐹−1(1)]}.
+
+The terms 𝐹−1(𝑢), 𝐹−1(1) inside the integral is not finite. They will be removed from the calculation and the justification of doing so is that in the limit as 𝑛→∞, the omitted terms will cover a vanishingly small proportion of the interval (0,1) so that their contribution to the integral will decrease to zero given that the expectation is known.
+
+Hence, the final approximation:
+E[g(x)] = 1/2𝑛*{𝑔[𝐹−1(1𝑛)]+2𝑔[𝐹−1(2𝑛)]+…+2𝑔[𝐹−1(𝑛−2𝑛)]+𝑔[𝐹−1(𝑛−1𝑛)]}
+
+```{r}
+
+polyexpect<-function(mu=0, sigsq=1, a, n=100){
+  
+  #Nested function to evaluate the polynomial value of x
+  polynomial_function<-function(x){
+    
+    polynomial_value_x<-sum(a*x^(0:(length(a) - 1)))
+    
+    return(polynomial_value_x)
+  }
+  
+  #transformation of u=F(x)
+  u_value<- seq(1/n,(n-1)/n, length.out = n-1)
+  
+  x_value<- qnorm(u_value, mean = mu, sd=sqrt(sigsq))
+  
+  #calculating the corresponding value of the polynomial
+  gx_value <- vector("numeric", length = length(x_value))
+
+  for (i in 1:length(x_value)) {
+    gx_value[i] <- polynomial_function(x_value[i])
+  }
+  
+  #calculation of the expectation E[g(X)]
+  trapezium_areas<-gx_value[1]+gx_value[length(gx_value)]+2*sum(gx_value[2:length(gx_value)-1])
+  expectation<-(1/(2*n))*trapezium_areas
+  
+  #returning results as required
+  return(list(expectation, x_value, gx_value))
+}
+```
+
